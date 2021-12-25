@@ -75,27 +75,28 @@ next_string:
 	;-----------------------------------------------------------
 	; count words letters and lines
 	;-----------------------------------------------------------
-	; word counter = 1
-	; line counter = 1
-	; char counter = 0
+	mov r10,1	; word counter = 1
+	mov r11,0	; line counter = 1
+	mov r12,0	; char counter = 0
 
 returnpoint:
 	mov dl,[rsi]
-	test dl,' '	; check if char is Space
+	cmp dl,32	; check if char is Space
 	jz space	; inc space counter
-	test dl,10	; check for linefeed (newline linux)
+	cmp dl,10	; check for linefeed (newline linux)
 	jz lf		; inc line counter
 back:
-	; inc char counter
+	inc r12		; inc char counter
 	inc rsi
 	test dl,dl
 	jnz returnpoint	; start again
+	dec r12		; dec char counter by one false char count
 	jmp output
 space:
-	;inc space
+	inc r10		; inc space
 	jmp back
 lf:
-	;inc linefeed
+	inc r11		; inc linefeed
 	jmp back
 
 	;-----------------------------------------------------------
