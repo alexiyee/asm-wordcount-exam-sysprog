@@ -60,8 +60,8 @@ start:                         ; standard entry point for ld
 _start:
 %endif
         nop
-
-	;-----------------------------------------------------------
+next_string:
+	;----------------------------------------------------------
 	; read string from default input
 	;-----------------------------------------------------------
 	SYSCALL_4 SYS_READ, FD_STDIN, buffer, BUFFER_SIZE
@@ -70,9 +70,42 @@ _start:
 			; read (exa == 0)
 	mov byte [buffer+rax],0
 	; rsi: pointer to current character in buffer
-	lea rsi,[buffer] 
+	lea rsi,[buffer]
+	
+	;-----------------------------------------------------------
+	; count words letters and lines
+	;-----------------------------------------------------------
+	; word counter = 1
+	; line counter = 1
+	; char counter = 0
 
+returnpoint:
+	mov dl,[rsi]
+	test dl,' '	; check if char is Space
+	jz space	; inc space counter
+	test dl,10	; check for linefeed (newline linux)
+	jz lf		; inc line counter
+back:
+	; inc char counter
+	inc rsi
+	test dl,dl
+	jnz returnpoint	; start again
+	jmp output
+space:
+	;inc space
+	jmp back
+lf:
+	;inc linefeed
+	jmp back
 
+	;-----------------------------------------------------------
+	; Output
+	;-----------------------------------------------------------
+output:
+	; print word counter
+	; print line counter
+	; print char counter
+	jmp next_string
         ;-----------------------------------------------------------
         ; END OF PROGRAM
         ;-----------------------------------------------------------
