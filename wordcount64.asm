@@ -22,25 +22,36 @@
 
 %include "syscall.inc"  ; OS-specific system call macros
 
+extern uint_to_ascii
+
 ;-----------------------------------------------------------------------------
 ; CONSTANTS
 ;-----------------------------------------------------------------------------
 
-%define BUFFER_SIZE	80 ; max buffer size
+%define BUFFER_SIZE		65536	; max buffer size
+%define CHR_LF			10	; line Feed
 
 ;-----------------------------------------------------------------------------
 ; Section DATA
 ;-----------------------------------------------------------------------------
 SECTION .data
 
+outstr:
+		db "Chars: "
+.chars		db "             ", CHR_LF
+		db "Words  "
+.words 		db "             ", CHR_LF
+		db "Lines: "
+.lines		db "             ", CHR_LF
+outstr_len	equ $-outstr
+		db 0
 
 ;-----------------------------------------------------------------------------
 ; Section BSS
 ;-----------------------------------------------------------------------------
 SECTION .bss
 
-		align 128
-buffer		resb BUFFER_SIZE
+buffer		resb BUFFER_SIZE 
 
 ;-----------------------------------------------------------------------------
 ; SECTION TEXT
@@ -52,8 +63,8 @@ SECTION .text
         ;-----------------------------------------------------------
 %ifidn __OUTPUT_FORMAT__, macho64
         DEFAULT REL
-        global start            ; make label available to linker
-start:                         ; standard entry point for ld
+        global start		; make label available to linker
+start:				; standard entry point for ld
 %else
         DEFAULT ABS
         global _start:function  ; make label available to linker
@@ -66,8 +77,8 @@ next_string:
 	;-----------------------------------------------------------
 	SYSCALL_4 SYS_READ, FD_STDIN, buffer, BUFFER_SIZE
 	test rax,rax	; check system call return value
-	jz	_exit	; jump too exit if no characters have been
-			; read (exa == 0)
+	jz _exit	; jump too exit if no characters have been
+			; read (rax == 0)
 	mov byte [buffer+rax],0
 	; rsi: pointer to current character in buffer
 	lea rsi,[buffer]
@@ -75,9 +86,9 @@ next_string:
 	;-----------------------------------------------------------
 	; count words letters and lines
 	;-----------------------------------------------------------
-	mov r10,1	; word counter = 1
-	mov r11,0	; line counter = 1
-	mov r12,0	; char counter = 0
+	mov r10d,1	; word counter = 1
+	mov r11d,0	; line counter = 1
+	mov r12d,0	; char counter = 0
 
 returnpoint:
 	mov dl,[rsi]
@@ -86,27 +97,34 @@ returnpoint:
 	cmp dl,10	; check for linefeed (newline linux)
 	jz lf		; inc line counter
 back:
-	inc r12		; inc char counter
+	inc r12d	; inc char counter
 	inc rsi
 	test dl,dl
 	jnz returnpoint	; start again
-	dec r12		; dec char counter by one false char count
-	jmp output
+	dec r12d	; dec char counter by one false char count
+	jmp convert
 space:
-	inc r10		; inc space
+	inc r10d	; inc space
 	jmp back
 lf:
-	inc r11		; inc linefeed
+	inc r11d	; inc linefeed
 	jmp back
 
+	;-----------------------------------------------------------
+	; Convert register content to ASCII 
+	;-----------------------------------------------------------
+convert:
+	
+debugg:
+	nop
 	;-----------------------------------------------------------
 	; Output
 	;-----------------------------------------------------------
 output:
-	; print word counter
-	; print line counter
-	; print char counter
-	jmp next_string
+	;lea rsi,[ascii_string]		; load adress into rsi
+	;mov [rsi],dword "Baum"
+	SYSCALL_4 SYS_WRITE, FD_STDOUT, outstr, outstr_len
+
         ;-----------------------------------------------------------
         ; END OF PROGRAM
         ;-----------------------------------------------------------
