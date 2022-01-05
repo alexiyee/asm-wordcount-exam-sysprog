@@ -22,7 +22,7 @@ INCDIR      = ./
 OS          := $(shell uname -s)
 ARCH        := $(shell uname -m)
 
-TARGETS     = wordcount64 genchartable
+TARGETS     = wordcount64
 
 # Cross-compile for x86_64 target on Apple M1
 ifeq ($(OS)_$(ARCH), Darwin_arm64)
@@ -34,16 +34,10 @@ endif
 .PHONY: all
 all: $(TARGETS)
 
-wordcount64: wordcount64.o asciitable64.o uint_to_ascii64.o
+wordcount64: wordcount64.o uint_to_ascii64.o
 	$(LD) $(LDOPT64) -o $@ $^
 
 wordcount64.o : $(INCDIR)/syscall.inc
-
-asciitable64.o: asciitable.asm asciitable.inc
-	$(NASM) $(NASMOPT64) -o $@ $<
-
-asciitable.inc: genchartable
-	./genchartable > $@
 
 %64.o : %64.asm
 	$(NASM) $(NASMOPT64) -I$(INCDIR) -l $(basename $<).lst -o $@ $<
