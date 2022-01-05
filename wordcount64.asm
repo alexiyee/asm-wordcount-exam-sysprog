@@ -36,15 +36,24 @@ extern uint_to_ascii
 ;-----------------------------------------------------------------------------
 SECTION .data
 
+chcnt		dq 0
+wdcnt		dq 1
+lncnt		dq 0
+
 outstr:
 		db "Chars: "
 .chars		db "             ", CHR_LF
-		db "Words  "
+		db "Words: "
 .words 		db "             ", CHR_LF
 		db "Lines: "
 .lines		db "             ", CHR_LF
 outstr_len	equ $-outstr
 		db 0
+
+chstr		dq outstr.chars
+chstr_len	equ $-chstr
+wdstr		dq outstr.words
+lnstr		dq outstr.lines
 
 ;-----------------------------------------------------------------------------
 ; Section BSS
@@ -71,7 +80,6 @@ start:				; standard entry point for ld
 _start:
 %endif
         nop
-next_string:
 	;----------------------------------------------------------
 	; read string from default input
 	;-----------------------------------------------------------
@@ -82,13 +90,7 @@ next_string:
 	mov byte [buffer+rax],0
 	; rsi: pointer to current character in buffer
 	lea rsi,[buffer]
-	
-	;-----------------------------------------------------------
-	; count words letters and lines
-	;-----------------------------------------------------------
-	mov r10d,1	; word counter = 1
-	mov r11d,0	; line counter = 1
-	mov r12d,0	; char counter = 0
+
 
 returnpoint:
 	mov dl,[rsi]
@@ -97,24 +99,32 @@ returnpoint:
 	cmp dl,10	; check for linefeed (newline linux)
 	jz lf		; inc line counter
 back:
-	inc r12d	; inc char counter
+	inc qword [chcnt]	; inc char counter
 	inc rsi
 	test dl,dl
 	jnz returnpoint	; start again
-	dec r12d	; dec char counter by one false char count
+	dec qword [chcnt]	; dec char counter by one false char count
 	jmp convert
 space:
-	inc r10d	; inc space
+	inc qword [wdcnt]	; inc space
 	jmp back
 lf:
-	inc r11d	; inc linefeed
+	inc qword [lncnt]	; inc linefeed
 	jmp back
 
 	;-----------------------------------------------------------
 	; Convert register content to ASCII 
 	;-----------------------------------------------------------
 convert:
-	
+	mov rsi,[chcnt]
+	mov rdi,outstr.chars
+	call uint_to_ascii
+	mov rsi,[wdcnt]
+	mov rdi,outstr.words
+	call uint_to_ascii
+	mov rsi,[lncnt]
+	mov rdi,outstr.lines
+	call uint_to_ascii
 debugg:
 	nop
 	;-----------------------------------------------------------
