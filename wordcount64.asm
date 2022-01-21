@@ -37,8 +37,8 @@ extern uint_to_ascii
 SECTION .data
 
 chcnt		dq 0
-wdcnt		dq 1
-lncnt		dq 0
+wdcnt		dq 0
+lncnt		dq 1 ; because every text starts in the first line
 
 outstr:
 		db "Chars: "
@@ -94,23 +94,27 @@ _start:
 
 returnpoint:
 	mov dl,[rsi]
-	cmp dl,32	; check if char is Space
-	jz space	; inc space counter
-	cmp dl,10	; check for linefeed (newline linux)
-	jz lf		; inc line counter
+	cmp dl,33		; check if char is Space
+	; war jz
+	jb space		; inc space counter
+	;cmp dl,10		; check for linefeed (newline linux)
+	;jz lf			; inc line counter
 back:
 	inc qword [chcnt]	; inc char counter
 	inc rsi
 	test dl,dl
-	jnz returnpoint	; start again
+	jnz returnpoint		; start again
 	dec qword [chcnt]	; dec char counter by one false char count
+	dec qword [wdcnt]	; dec word counter by one false count
 	jmp convert
 space:
 	inc qword [wdcnt]	; inc space
+	cmp dl,10		; check for Linefeed
+	jz lf			; jump
 	jmp back
 lf:
 	inc qword [lncnt]	; inc linefeed
-	jmp back
+	jmp back		
 
 	;-----------------------------------------------------------
 	; Convert register content to ASCII 
@@ -118,21 +122,17 @@ lf:
 convert:
 	mov rsi,[chcnt]
 	mov rdi,outstr.chars
-	call uint_to_ascii
+	call uint_to_ascii	; convert chars into ASCII
 	mov rsi,[wdcnt]
 	mov rdi,outstr.words
-	call uint_to_ascii
+	call uint_to_ascii	; convert words into ASCII
 	mov rsi,[lncnt]
 	mov rdi,outstr.lines
-	call uint_to_ascii
-debugg:
-	nop
+	call uint_to_ascii	; convert lines into ASCII
 	;-----------------------------------------------------------
 	; Output
 	;-----------------------------------------------------------
 output:
-	;lea rsi,[ascii_string]		; load adress into rsi
-	;mov [rsi],dword "Baum"
 	SYSCALL_4 SYS_WRITE, FD_STDOUT, outstr, outstr_len
 
         ;-----------------------------------------------------------
